@@ -1,15 +1,5 @@
 package com.cantrip.focusalarm
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.media.AudioAttributes
-import android.media.RingtoneManager
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.util.Log
-import android.widget.Toast
 import android.app.Activity
 import android.os.Bundle
 import android.view.Window
@@ -17,49 +7,15 @@ import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import java.util.concurrent.TimeUnit
+import android.util.Log
+import android.content.Intent
 import android.app.AlarmManager
 import android.app.PendingIntent
-
-// Ensure this class is ONLY defined here. There should be no other AlarmReceiver class in your project.
-class AlarmReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        Log.d("AlarmReceiver", "Alarm triggered!")
-
-        val alarmName = intent.getStringExtra(AlarmActivity.ALARM_NAME_EXTRA) ?: "An Alarm"
-        val alarmId = intent.getIntExtra(AlarmActivity.ALARM_ID_EXTRA, -1)
-
-        Toast.makeText(context, "$alarmName is ringing!", Toast.LENGTH_LONG).show()
-
-        val alarmActivityIntent = Intent(context, AlarmActivity::class.java)
-        alarmActivityIntent.putExtra(AlarmActivity.ALARM_NAME_EXTRA, alarmName)
-        alarmActivityIntent.putExtra(AlarmActivity.IS_ONE_OFF_EXTRA, intent.getBooleanExtra(AlarmActivity.IS_ONE_OFF_EXTRA, false))
-        alarmActivityIntent.putExtra(AlarmActivity.ALARM_ID_EXTRA, alarmId)
-        alarmActivityIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        context.startActivity(alarmActivityIntent)
-
-        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-        val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
-        ringtone?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-                it.audioAttributes = audioAttributes
-            }
-            it.play()
-        }
-
-        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(500)
-        }
-    }
-}
+import android.os.Build
+import java.util.concurrent.TimeUnit
+import android.widget.Toast
+import android.content.Context
+import com.cantrip.focusalarm.AlarmReceiver
 
 class AlarmActivity : Activity() {
     private var alarmName: String = ""
@@ -82,12 +38,12 @@ class AlarmActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
-        window.addFlags(
-            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_FULLSCREEN
-        )
+
+        // Use modern approach for SDK 31+
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or WindowManager.LayoutParams.FLAG_FULLSCREEN)
+
 
         setContentView(R.layout.activity_alarm)
 
@@ -147,12 +103,26 @@ class AlarmActivity : Activity() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, snoozeTimeMillis, pendingIntent)
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, snoozeTimeMillis, pendingIntent)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, snoozeTimeMillis, pendingIntent)
+                } else {
+                    // Handle the case where the user has not granted the permission
+                    Toast.makeText(this, "Permission required to schedule exact alarm", Toast.LENGTH_LONG).show()
+                    Log.e("AlarmActivity", "Permission to schedule exact alarm not granted")
+                    //  Consider redirecting the user to the system settings to grant the permission
+                }
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, snoozeTimeMillis, pendingIntent)
+            }
+            Toast.makeText(this, "Snoozed for $SNOOZE_DURATION_MINUTES minutes", Toast.LENGTH_SHORT).show()
+        } catch (e: SecurityException) {
+            // Handle the SecurityException
+            Toast.makeText(this, "Failed to schedule alarm: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.e("AlarmActivity", "SecurityException while scheduling alarm: ${e.message}")
+            // Consider redirecting the user to the system settings to grant the permission if appropriate.
         }
-        Toast.makeText(this, "Snoozed for $SNOOZE_DURATION_MINUTES minutes", Toast.LENGTH_SHORT).show()
     }
 
     private fun finishAndRemoveAlarm() {
@@ -164,15 +134,20 @@ class AlarmActivity : Activity() {
             alarmIntent,
             PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.cancel(pendingIntent)
+        try {
+            alarmManager.cancel(pendingIntent)
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "Failed to cancel alarm: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.e("AlarmActivity", "SecurityException while cancelling alarm: ${e.message}")
+        }
+
 
         if (!isOneOff) {
             Log.d("AlarmActivity", "Rescheduling alarm (One-off = false, id = $alarmId)")
-            //  You'll need to have the logic to get the next alarm time and reschedule it here.
+            //  You'll need to have the logic to get the next alarm time and reschedule it here.  Make sure to include the permission check here as well.
         } else {
             Log.d("AlarmActivity", "One-off alarm, not rescheduling (id = $alarmId)")
         }
         finish()
     }
 }
-

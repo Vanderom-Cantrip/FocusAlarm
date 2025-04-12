@@ -1,192 +1,182 @@
 package com.cantrip.focusalarm
 
-import android.app.Activity
-import android.app.AlarmManager
-import android.app.KeyguardManager
-import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.util.Log
+import android.widget.Toast
+import android.app.Activity
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.view.MotionEvent
-import android.view.View
+import android.view.Window
 import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContextCompat.getSystemService
-import java.util.Calendar
+import androidx.core.content.ContextCompat
+import java.util.concurrent.TimeUnit
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.os.Parcel
+import android.os.Parcelable
+
+// Ensure this class is ONLY defined here.  There should be no other AlarmReceiver class in your project.
+class AlarmReceiver() : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        Log.d("AlarmReceiver", "Alarm triggered!")
+
+        val alarmName = intent.getStringExtra(AlarmActivity.ALARM_NAME_EXTRA) ?: "An Alarm"
+        val alarmId = intent.getIntExtra(AlarmActivity.ALARM_ID_EXTRA, -1)
+
+        Toast.makeText(context, "$alarmName is ringing!", Toast.LENGTH_LONG).show()
+
+        val alarmActivityIntent = Intent(context, AlarmActivity::class.java)
+        alarmActivityIntent.putExtra(AlarmActivity.ALARM_NAME_EXTRA, alarmName)
+        alarmActivityIntent.putExtra(AlarmActivity.IS_ONE_OFF_EXTRA, intent.getBooleanExtra(AlarmActivity.IS_ONE_OFF_EXTRA, false))
+        alarmActivityIntent.putExtra(AlarmActivity.ALARM_ID_EXTRA, alarmId)
+        alarmActivityIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        context.startActivity(alarmActivityIntent)
+
+        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
+        if (ringtone != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                ringtone.audioAttributes = audioAttributes
+            }
+            ringtone.play()
+        }
+
+        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(500)
+        }
+    }
+
+}
 
 class AlarmActivity : Activity() {
+    private var alarmName: String = ""
+    private var isOneOff: Boolean = false
+    private var alarmId: Int = -1
 
+    private lateinit var snoozeButton: ImageButton
+    private lateinit var ackButton: ImageButton
     private lateinit var killButton: ImageButton
     private lateinit var extraKillButton: ImageButton
-    private var killButtonOriginalX = 0f
-    private var killButtonOriginalY = 0f
-    private var extraKillButtonOriginalX = 0f
-    private var extraKillButtonOriginalY = 0f
-    private var alarmName: String = "" // Added alarm name storage
-    private var isOneOff: Boolean = false // Added flag for one-off alarm
+    private lateinit var alarmTextView: TextView
 
-    // Constants for intent extra keys
     companion object {
         const val ALARM_NAME_EXTRA = "alarm_name"
         const val IS_ONE_OFF_EXTRA = "is_one_off"
-        const val ALARM_ID_EXTRA = "alarm_id" //Pass the alarm ID
+        const val ALARM_ID_EXTRA = "alarm_id"
+        private const val SNOOZE_DURATION_MINUTES = 10
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Use modern APIs for showing the activity over the lock screen
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-            val keyguardManager = getSystemService(KeyguardManager::class.java)
-            keyguardManager?.requestDismissKeyguard(this, null)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-            )
-        }
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
 
         setContentView(R.layout.activity_alarm)
 
-        // Retrieve ImageButtons from the layout
+        snoozeButton = findViewById(R.id.snoozeButton)
+        ackButton = findViewById(R.id.ackButton)
         killButton = findViewById(R.id.killButton)
         extraKillButton = findViewById(R.id.extraKillButton)
+        alarmTextView = findViewById(R.id.alarmText)
 
-        // Get data from the intent
-        alarmName = intent.getStringExtra(ALARM_NAME_EXTRA) ?: "This Alarm"  // Default Value
+        alarmName = intent.getStringExtra(ALARM_NAME_EXTRA) ?: "Alarm"
         isOneOff = intent.getBooleanExtra(IS_ONE_OFF_EXTRA, false)
-        val alarmId = intent.getIntExtra(ALARM_ID_EXTRA, -1) // Get the alarm ID.
+        alarmId = intent.getIntExtra(ALARM_ID_EXTRA, -1)
 
-        // Set up OnTouchListeners for the buttons
-        setupDragButton(killButton, "$alarmName Alarm Cancelled", alarmId) // Pass alarmId
-        setupDragButton(extraKillButton, "$alarmName Alarm Removed", alarmId) // Pass alarmId
-    }
+        alarmTextView.text = "$alarmName is ringing!"
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            // Get the initial positions of the buttons.  Do this *after* the layout is complete.
-            killButtonOriginalX = killButton.x
-            killButtonOriginalY = killButton.y
-            extraKillButtonOriginalX = extraKillButton.x
-            extraKillButtonOriginalY = extraKillButton.y
+        // Make sure you have @color/alarm_button_color defined in res/values/colors.xml
+        val buttonColor = ContextCompat.getColor(this, R.color.alarm_button_color)
+        snoozeButton.setColorFilter(buttonColor)
+        ackButton.setColorFilter(buttonColor)
+        killButton.setColorFilter(buttonColor)
+        extraKillButton.setColorFilter(buttonColor)
+
+        snoozeButton.setOnClickListener {
+            Log.d("AlarmActivity", "Snooze clicked")
+            scheduleSnooze()
+            finish()
+        }
+
+        ackButton.setOnClickListener {
+            Log.d("AlarmActivity", "Acknowledge clicked")
+            finishAndRemoveAlarm()
+        }
+
+        killButton.setOnClickListener {
+            Log.d("AlarmActivity", "Kill clicked")
+            finishAndRemoveAlarm()
+        }
+
+        extraKillButton.setOnClickListener {
+            Log.d("AlarmActivity", "Extra Kill clicked")
+            finishAndRemoveAlarm()
         }
     }
 
-    private fun setupDragButton(button: ImageButton, toastText: String, alarmId: Int) { // Added alarmId parameter
-        button.setOnTouchListener(object : View.OnTouchListener {
-            var startX = 0f
-            var startY = 0f
-            var isDragging = false
-            override fun onTouch(v: View, event: MotionEvent): Boolean {
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        startX = event.rawX
-                        startY = event.rawY
-                        isDragging = true
-                        return true
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        if (!isDragging) return false
-                        val dx = event.rawX - startX
-                        val dy = event.rawY - startY
-                        v.x = v.x + dx
-                        v.y = v.y + dy
-                        startX = event.rawX
-                        startY = event.rawY
-                        // Check for snap back and trigger
-                        if (v.id == R.id.killButton && isNear(v, extraKillButton)) {
-                            // Cancel the alarm
-                            cancelAlarm(alarmId)
-                            showToastAndFinish(toastText) // Use the helper
-                            isDragging = false // Stop dragging
-                            return true
-                        } else if (v.id == R.id.extraKillButton && isNear(v, killButton)) {
-                            if (isOneOff) {
-                                cancelAlarm(alarmId)
-                                showToastAndFinish(toastText) //and use the helper.
-                            } else {
-                                // Show confirmation dialog for repeating alarms
-                                showRemoveConfirmationDialog(alarmId) // Pass alarmId
-                            }
-                            isDragging = false // Stop dragging
-                            return true
-                        }
-                        return true
-                    }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        if (isDragging) {
-                            resetButtonPosition(v)
-                            isDragging = false
-                            return true
-                        }
-                        return false
-                    }
-                    else -> return false
-                }
-            }
-        })
-    }
-
-    private fun isNear(v1: View, v2: View): Boolean {
-        val xThreshold = v2.width * 0.5f
-        val yThreshold = v2.height * 0.5f
-        val xDiff = Math.abs(v1.x - v2.x)
-        val yDiff = Math.abs(v1.y - v2.y)
-        return xDiff < xThreshold && yDiff < yThreshold
-    }
-
-    private fun resetButtonPosition(v: View) {
-        if (v.id == R.id.killButton) {
-            v.x = killButtonOriginalX
-            v.y = killButtonOriginalY
-        } else if (v.id == R.id.extraKillButton) {
-            v.x = extraKillButtonOriginalX
-            v.y = extraKillButtonOriginalY
-        }
-    }
-
-    private fun showToastAndFinish(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-        Handler(Looper.getMainLooper()).postDelayed({
-            finish() // Close the activity after the toast
-        }, 5000)
-    }
-
-    private fun showRemoveConfirmationDialog(alarmId: Int) { // Added alarmId parameter
-        AlertDialog.Builder(this)
-            .setTitle("Remove Alarm")
-            .setMessage("Are you sure you want to permanently delete all instances of $alarmName alarm?")
-            .setPositiveButton("Yes") { dialog, which ->
-                // Remove the alarm
-                cancelAlarm(alarmId)
-                Toast.makeText(this@AlarmActivity, "$alarmName Alarm Removed", Toast.LENGTH_LONG).show()
-                finish()
-            }
-            .setNegativeButton("No") { dialog, which ->
-                // Do nothing
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    private fun cancelAlarm(alarmId: Int) {
+    private fun scheduleSnooze() {
+        val snoozeTimeMillis = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(SNOOZE_DURATION_MINUTES.toLong())
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(this, AlarmReceiver::class.java)  // Use your AlarmReceiver
-        val pendingIntent = PendingIntent.getBroadcast(this, alarmId, intent,
-            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE) // Use the alarmId
+        val snoozeIntent = Intent(this, AlarmReceiver::class.java)
+        snoozeIntent.putExtra(ALARM_NAME_EXTRA, alarmName)
+        snoozeIntent.putExtra(IS_ONE_OFF_EXTRA, true)
+        snoozeIntent.putExtra(ALARM_ID_EXTRA, alarmId)
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            alarmId,
+            snoozeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, snoozeTimeMillis, pendingIntent)
+        } else {
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, snoozeTimeMillis, pendingIntent)
+        }
+        Toast.makeText(this, "Snoozed for $SNOOZE_DURATION_MINUTES minutes", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun finishAndRemoveAlarm() {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val alarmIntent = Intent(this, AlarmReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            alarmId,
+            alarmIntent,
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         alarmManager.cancel(pendingIntent)
-        Log.d("AlarmActivity", "Alarm with ID $alarmId cancelled")
+
+        if (!isOneOff) {
+            Log.d("AlarmActivity", "Rescheduling alarm (One-off = false, id = $alarmId)")
+            //  You'll need to have the logic to get the next alarm time and reschedule it here.
+        } else {
+            Log.d("AlarmActivity", "One-off alarm, not rescheduling (id = $alarmId)")
+        }
+        finish()
     }
 }
 

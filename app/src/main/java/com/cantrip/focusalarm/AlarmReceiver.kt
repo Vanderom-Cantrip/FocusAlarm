@@ -1,52 +1,55 @@
 package com.cantrip.focusalarm
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
-import android.media.RingtoneManager
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat.startActivity
 
-// Ensure this class is ONLY defined here. There should be no other AlarmReceiver class in your project.
 class AlarmReceiver : BroadcastReceiver() {
+
+    companion object {
+        // Constants should be in ALL_CAPS with underscores for multiple words
+        const val ALARM_LEVEL_EXTRA = "ALARM_LEVEL_EXTRA"
+        const val ALARM_NAME_EXTRA = "ALARM_NAME_EXTRA"
+        const val IS_ONE_OFF_EXTRA = "IS_ONE_OFF_EXTRA"
+        const val ALARM_ID_EXTRA = "ALARM_ID_EXTRA"
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d("AlarmReceiver", "Alarm triggered!")
+        Log.d("AlarmReceiver", "Alarm received!")
 
-        val alarmName = intent.getStringExtra(AlarmActivity.ALARM_NAME_EXTRA) ?: "An Alarm"
-        val alarmId = intent.getIntExtra(AlarmActivity.ALARM_ID_EXTRA, -1)
+        // Use the constants from the companion object
+        val alarmLevel = intent.getIntExtra(ALARM_LEVEL_EXTRA, 0)
+        val alarmName = intent.getStringExtra(ALARM_NAME_EXTRA) ?: "Unknown Alarm"
+        val isOneOff = intent.getBooleanExtra(IS_ONE_OFF_EXTRA, false)
+        val alarmId = intent.getIntExtra(ALARM_ID_EXTRA, 0)
 
-        Toast.makeText(context, "$alarmName is ringing!", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Alarm! Level: $alarmLevel, Name: $alarmName", Toast.LENGTH_LONG).show()
 
-        val alarmActivityIntent = Intent(context, AlarmActivity::class.java)
-        alarmActivityIntent.putExtra(AlarmActivity.ALARM_NAME_EXTRA, alarmName)
-        alarmActivityIntent.putExtra(AlarmActivity.IS_ONE_OFF_EXTRA, intent.getBooleanExtra(AlarmActivity.IS_ONE_OFF_EXTRA, false))
-        alarmActivityIntent.putExtra(AlarmActivity.ALARM_ID_EXTRA, alarmId)
-        alarmActivityIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        context.startActivity(alarmActivityIntent)
+        val activityIntent = Intent(context, AlarmActivity::class.java)
+        // Use the constants from THIS class (AlarmReceiver)
+        activityIntent.putExtra(ALARM_LEVEL_EXTRA, alarmLevel)
+        activityIntent.putExtra(ALARM_NAME_EXTRA, alarmName)
+        activityIntent.putExtra(IS_ONE_OFF_EXTRA, isOneOff)
+        activityIntent.putExtra(ALARM_ID_EXTRA, alarmId)
+        activityIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
 
-        val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-        val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
-        ringtone?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val audioAttributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-                it.audioAttributes = audioAttributes
-            }
-            it.play()
+        startActivity(context, activityIntent, null)
+
+        if (isOneOff) {
+            cancelAlarm(context, alarmId)
         }
+    }
 
-        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(500)
-        }
+    private fun cancelAlarm(context: Context, alarmId: Int) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, AlarmReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(context, alarmId, intent, PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        alarmManager.cancel(pendingIntent)
+        Log.d("AlarmReceiver", "One-off alarm canceled")
     }
 }

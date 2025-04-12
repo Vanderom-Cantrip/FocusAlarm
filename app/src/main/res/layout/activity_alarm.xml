@@ -19,6 +19,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/alarmInfoTextView"
+        android:layout_width="0dp"  android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Alarm Information Will Appear Here"
+        android:textSize="18sp"
+        android:textColor="#000000"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@+id/alarmText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        />
+
     <ImageButton
         android:id="@+id/snoozeButton"
         android:layout_width="wrap_content"
@@ -35,8 +48,7 @@
         app:layout_constraintHorizontal_bias="0.529"
         app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/alarmText"
-        app:tint="@android:color/black" />
+        app:layout_constraintTop_toBottomOf="@+id/alarmText" />
 
     <TextView
         android:id="@+id/snoozeLabel"
@@ -63,8 +75,7 @@
         android:scaleType="centerInside"
         android:src="@drawable/ic_acknowledge_24"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/alarmText"
-        app:tint="@android:color/black" />
+        app:layout_constraintTop_toBottomOf="@+id/alarmText" />
 
     <TextView
         android:id="@+id/ackLabel"

@@ -20,12 +20,9 @@ import androidx.core.content.ContextCompat
 import java.util.concurrent.TimeUnit
 import android.app.AlarmManager
 import android.app.PendingIntent
-import android.os.Parcel
-import android.os.Parcelable
 
-// Ensure this class is ONLY defined here.  There should be no other AlarmReceiver class in your project.
-class AlarmReceiver() : BroadcastReceiver() {
-
+// Ensure this class is ONLY defined here. There should be no other AlarmReceiver class in your project.
+class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("AlarmReceiver", "Alarm triggered!")
 
@@ -43,15 +40,15 @@ class AlarmReceiver() : BroadcastReceiver() {
 
         val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
         val ringtone = RingtoneManager.getRingtone(context, ringtoneUri)
-        if (ringtone != null) {
+        ringtone?.let {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val audioAttributes = AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
-                ringtone.audioAttributes = audioAttributes
+                it.audioAttributes = audioAttributes
             }
-            ringtone.play()
+            it.play()
         }
 
         val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -62,7 +59,6 @@ class AlarmReceiver() : BroadcastReceiver() {
             vibrator.vibrate(500)
         }
     }
-
 }
 
 class AlarmActivity : Activity() {
@@ -105,9 +101,9 @@ class AlarmActivity : Activity() {
         isOneOff = intent.getBooleanExtra(IS_ONE_OFF_EXTRA, false)
         alarmId = intent.getIntExtra(ALARM_ID_EXTRA, -1)
 
-        alarmTextView.text = "$alarmName is ringing!"
+        alarmTextView.text = getString(R.string.alarm_is_ringing, alarmName)
 
-        // Make sure you have @color/alarm_button_color defined in res/values/colors.xml
+        // Make absolutely sure you have @color/alarm_button_color defined in res/values/colors.xml
         val buttonColor = ContextCompat.getColor(this, R.color.alarm_button_color)
         snoozeButton.setColorFilter(buttonColor)
         ackButton.setColorFilter(buttonColor)

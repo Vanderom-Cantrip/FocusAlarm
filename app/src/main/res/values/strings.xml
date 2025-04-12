@@ -1,12 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The app name used in the manifest -->
     <string name="app_name">FocusAlarm</string>
-
-    <!-- Strings used in your layouts -->
-    <string name="alarm_title">ALARM!</string>
+    <string name="alarm_is_ringing">%1$s is ringing!</string>
     <string name="snooze">Snooze</string>
     <string name="acknowledge">Acknowledge</string>
-    <string name="cancel_alarm">Cancel Alarm</string>
-    <string name="remove_alarm">Remove Alarm</string>
+    <string name="cancel_alarm">Cancel</string>
+    <string name="remove_alarm">Remove</string>
+    <string name="alarm_title">Alarm</string>
 </resources>

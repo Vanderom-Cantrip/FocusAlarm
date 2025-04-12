@@ -6,6 +6,9 @@ plugins {
 android {
     namespace = "com.cantrip.focusalarm"
     compileSdk = 35
+    buildFeatures {
+        viewBinding = true
+    }
 
     defaultConfig {
         applicationId = "com.cantrip.focusalarm"

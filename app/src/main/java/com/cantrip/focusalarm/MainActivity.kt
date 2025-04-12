@@ -1,80 +1,86 @@
 package com.cantrip.focusalarm
 
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
-import android.icu.util.Calendar
-import android.net.Uri
-import android.os.Build
+import android.media.MediaPlayer
 import android.os.Bundle
-import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.cantrip.focusalarm.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var alarmManager: AlarmManager
-    private lateinit var pendingIntent: PendingIntent
+    private var currentPlayer: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        // Main alarm control buttons
+        binding.buttonSetAlarm.setOnClickListener { setAlarm() }
+        binding.buttonCancelAlarm.setOnClickListener { cancelAlarm() }
 
-        binding.buttonSetAlarm.setOnClickListener {
-            setAlarm()
+        // Test alarm buttons
+        binding.buttonTestAlarm1.setOnClickListener {
+            val intent = Intent(this, AlarmActivity::class.java)
+            startActivity(intent)
+        }
+        binding.buttonTestAlarm2.setOnClickListener { playAlarm(R.raw.alarm2, "Test Alarm 2") }
+        binding.buttonTestAlarm3.setOnClickListener { playAlarm(R.raw.alarm3, "Test Alarm 3") }
+        binding.buttonTestAlarm4.setOnClickListener { playAlarm(R.raw.alarm4, "Test Alarm 4") }
+
+        // Stop button
+        binding.buttonStopAlarm.setOnClickListener { stopAlarmSounds() }
+
+        // Repeat toggle visibility
+        binding.switchRepeat.setOnCheckedChangeListener { _, isChecked ->
+            binding.layoutDays.visibility = if (isChecked) android.view.View.VISIBLE else android.view.View.GONE
         }
 
-        binding.buttonCancelAlarm.setOnClickListener {
-            cancelAlarm()
-        }
-
-        // Assuming you have a TextView with the ID "textViewAlarmStatus" in your activity_main.xml
-        binding.textViewAlarmStatus.text = "Alarm Not Set"
+        binding.textViewAlarmStatus.text = "Alarm status: Not set"
     }
 
     private fun setAlarm() {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, binding.timePicker.hour)
-            set(Calendar.MINUTE, binding.timePicker.minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
+        val hour = binding.timePicker.hour
+        val minute = binding.timePicker.minute
 
-        if (calendar.timeInMillis <= Calendar.getInstance().timeInMillis) {
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-        }
+        val alarmTime = "%02d:%02d".format(hour, minute)
+        val startMinute = (minute - 15 + 60) % 60
+        val startHour = if (minute < 15) (hour - 1 + 24) % 24 else hour
+        val startTime = "%02d:%02d".format(startHour, startMinute)
 
-        val intent = Intent(this, AlarmReceiver::class.java).apply {
-            data = Uri.parse("custom://" + System.currentTimeMillis()) // Unique URI for each alarm
-            action = "com.cantrip.focusalarm.ALARM_ACTION"
-        }
+        val label = binding.editTextAlarmName.text.toString().take(20).trim()
 
-        pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        } else {
-            PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
-        }
-
-        alarmManager.setExact(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            pendingIntent
-        )
-
-        val alarmTimeText = "Alarm set for ${binding.timePicker.hour}:${binding.timePicker.minute}"
-        binding.textViewAlarmStatus.text = alarmTimeText
-        Toast.makeText(this, alarmTimeText, Toast.LENGTH_SHORT).show()
+        val nameInfo = if (label.isNotEmpty()) "Alarm '$label'" else "Alarm"
+        binding.textViewAlarmStatus.text = "$nameInfo set for $alarmTime – Notifications will start from $startTime"
     }
 
     private fun cancelAlarm() {
-        alarmManager.cancel(pendingIntent)
-        binding.textViewAlarmStatus.text = "Alarm Cancelled"
-        Toast.makeText(this, "Alarm Cancelled", Toast.LENGTH_SHORT).show()
+        binding.textViewAlarmStatus.text = "Alarm cancelled"
+    }
+
+    private fun playAlarm(resId: Int, label: String) {
+        stopAlarmSounds()
+
+        binding.textViewAlarmStatus.text = "🔊 Playing $label"
+        currentPlayer = MediaPlayer.create(this, resId)
+        currentPlayer?.setOnCompletionListener {
+            it.release()
+            currentPlayer = null
+            binding.textViewAlarmStatus.text = "✅ $label finished"
+        }
+        currentPlayer?.start()
+    }
+
+    private fun stopAlarmSounds() {
+        currentPlayer?.release()
+        currentPlayer = null
+        binding.textViewAlarmStatus.text = "🔇 Alarm stopped"
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopAlarmSounds()
     }
 }

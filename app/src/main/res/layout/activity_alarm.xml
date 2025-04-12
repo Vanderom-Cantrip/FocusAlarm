@@ -7,158 +7,133 @@
     android:background="#FFCC80"
     android:padding="24dp">
 
-    <!-- Alarm Title near top center -->
     <TextView
         android:id="@+id/alarmText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/alarm_title"
         android:textSize="32sp"
-        android:textColor="@android:color/black"
+        android:textColor="#000000"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/snoozeBlock"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintVertical_bias="0.1" />
+        android:layout_marginBottom="32dp"/>
 
-    <!-- Snooze block: an ImageButton + label below -->
-    <LinearLayout
-        android:id="@+id/snoozeBlock"
+    <ImageButton
+        android:id="@+id/snoozeButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/alarmText"
-        app:layout_constraintBottom_toTopOf="@id/killBlock"
+        android:layout_marginTop="252dp"
+        android:layout_marginEnd="48dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/circle_button_bg"
+        android:contentDescription="@string/snooze"
+        android:padding="8dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_snooze_24"
+        app:layout_constraintEnd_toStartOf="@+id/ackButton"
+        app:layout_constraintHorizontal_bias="0.711"
+        app:layout_constraintHorizontal_chainStyle="spread"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/ackBlock"
-        app:layout_constraintHorizontal_bias="0.2"
-        app:layout_constraintVertical_bias="0.4">
+        app:layout_constraintTop_toBottomOf="@+id/alarmText"
+        app:tint="@android:color/black" />
 
-        <ImageButton
-            android:id="@+id/snoozeButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_snooze_24"
-            android:contentDescription="@string/snooze"
-            android:background="@drawable/circle_button_bg"
-            android:adjustViewBounds="true"
-            android:scaleType="centerInside"
-            app:tint="@android:color/black"
-            android:padding="8dp" />
-
-        <TextView
-            android:id="@+id/snoozeLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/snooze"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_marginTop="4dp" />
-    </LinearLayout>
-
-    <!-- Acknowledge block: an ImageButton + label below -->
-    <LinearLayout
-        android:id="@+id/ackBlock"
+    <TextView
+        android:id="@+id/snoozeLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/alarmText"
-        app:layout_constraintBottom_toTopOf="@id/extraKillBlock"
-        app:layout_constraintStart_toEndOf="@id/snoozeBlock"
+        android:text="@string/snooze"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        app:layout_constraintTop_toBottomOf="@+id/snoozeButton"
+        app:layout_constraintStart_toStartOf="@+id/snoozeButton"
+        app:layout_constraintEnd_toEndOf="@+id/snoozeButton"
+        android:layout_marginTop="4dp"/>
+
+    <ImageButton
+        android:id="@+id/ackButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="248dp"
+        android:layout_marginEnd="108dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/circle_button_bg"
+        android:contentDescription="@string/acknowledge"
+        android:padding="8dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_acknowledge_24"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.8"
-        app:layout_constraintVertical_bias="0.4">
+        app:layout_constraintTop_toBottomOf="@+id/alarmText"
+        app:tint="@android:color/black" />
 
-        <ImageButton
-            android:id="@+id/ackButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_acknowledge_24"
-            android:contentDescription="@string/acknowledge"
-            android:background="@drawable/circle_button_bg"
-            android:adjustViewBounds="true"
-            android:scaleType="centerInside"
-            app:tint="@android:color/black"
-            android:padding="8dp" />
-
-        <TextView
-            android:id="@+id/ackLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/acknowledge"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_marginTop="4dp" />
-    </LinearLayout>
-
-    <!-- Cancel block: bottom-left -->
-    <LinearLayout
-        android:id="@+id/killBlock"
+    <TextView
+        android:id="@+id/ackLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        app:layout_constraintStart_toStartOf="parent"
+        android:text="@string/acknowledge"
+        android:textSize="14sp"
+        android:textColor="#000000"
+        app:layout_constraintTop_toBottomOf="@+id/ackButton"
+        app:layout_constraintStart_toStartOf="@+id/ackButton"
+        app:layout_constraintEnd_toEndOf="@+id/ackButton"
+        android:layout_marginTop="4dp"/>
+
+    <ImageButton
+        android:id="@+id/killButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="48dp"
+        android:layout_marginBottom="172dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/circle_button_bg"
+        android:contentDescription="@string/cancel_alarm"
+        android:padding="8dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_cancel_24"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintHorizontal_bias="0.2"
-        app:layout_constraintVertical_bias="0.9">
+        app:layout_constraintEnd_toStartOf="@+id/extraKillButton"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintStart_toStartOf="parent"
+        app:tint="@android:color/black" />
 
-        <ImageButton
-            android:id="@+id/killButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_cancel_24"
-            android:contentDescription="@string/cancel_alarm"
-            android:background="@drawable/circle_button_bg"
-            android:adjustViewBounds="true"
-            android:scaleType="centerInside"
-            app:tint="@android:color/black"
-            android:padding="8dp" />
-
-        <TextView
-            android:id="@+id/killLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/cancel_alarm"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_marginTop="4dp" />
-    </LinearLayout>
-
-    <!-- Remove block: bottom-right -->
-    <LinearLayout
-        android:id="@+id/extraKillBlock"
+    <TextView
+        android:id="@+id/killLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:text="@string/cancel_alarm"
+        android:textColor="#000000"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@+id/killButton"
+        app:layout_constraintStart_toStartOf="@+id/killButton"
+        app:layout_constraintEnd_toEndOf="@+id/killButton"
+        android:layout_marginTop="4dp"/>
+
+    <ImageButton
+        android:id="@+id/extraKillButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="212dp"
+        android:layout_marginBottom="44dp"
+        android:adjustViewBounds="true"
+        android:background="@drawable/circle_button_bg"
+        android:contentDescription="@string/remove_alarm"
+        android:padding="8dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_delete_24"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintHorizontal_bias="0.8"
-        app:layout_constraintVertical_bias="0.9">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/black" />
 
-        <ImageButton
-            android:id="@+id/extraKillButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_delete_24"
-            android:contentDescription="@string/remove_alarm"
-            android:background="@drawable/circle_button_bg"
-            android:adjustViewBounds="true"
-            android:scaleType="centerInside"
-            app:tint="@android:color/black"
-            android:padding="8dp" />
-
-        <TextView
-            android:id="@+id/extraKillLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/remove_alarm"
-            android:textSize="14sp"
-            android:textColor="@android:color/black"
-            android:layout_marginTop="4dp" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/extraKillLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/remove_alarm"
+        android:textColor="#000000"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@+id/extraKillButton"
+        app:layout_constraintStart_toStartOf="@+id/extraKillButton"
+        app:layout_constraintEnd_toEndOf="@+id/extraKillButton"
+        android:layout_marginTop="4dp"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

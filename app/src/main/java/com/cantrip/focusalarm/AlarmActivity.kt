@@ -2,147 +2,123 @@ package com.cantrip.focusalarm
 
 import android.app.Activity
 import android.os.Bundle
-import android.util.Log // Import Log
-import android.view.View // Import View
+import android.util.DisplayMetrics
+import android.view.MotionEvent
+import android.view.View
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.ImageButton // Import ImageButton
+import android.widget.ImageButton
 import android.widget.Toast
-import android.os.Build
+import androidx.xr.runtime.math.toDegrees
+import kotlin.math.atan2
 
-// Implement the listener interface
-class AlarmActivity : Activity(), OnConfirmListener {
-
-    private val TAG = "AlarmActivity" // Add TAG for logging
-    private val DRAG_DISTANCE_DP = 60f // Define required drag distance
+class AlarmActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Keep using Toast for debug confirmation if needed
-        // Toast.makeText(this, "AlarmActivity Launched", Toast.LENGTH_LONG).show()
-
+        // Set window flags to display over the lock screen and keep the screen on
         window.addFlags(
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
                     WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON // or FLAG_DISMISS_KEYGUARD (with caveats)
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
-        // For modern Android (API 27+), preferred way:
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-            // Optional: Request dismiss keyguard (might need more setup)
-            // val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-            // keyguardManager.requestDismissKeyguard(this, null)
-        } else {
-            // Use flags for older versions
-            window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD)
-        }
-
 
         setContentView(R.layout.activity_alarm)
 
-        // --- Get references to ALL buttons ---
-        val snoozeButton = findViewById<Button>(R.id.snoozeButton)
-        val ackButton = findViewById<Button>(R.id.acknowledgeButton) // Corrected ID based on new XML
-        val cancelIconButton = findViewById<ImageButton>(R.id.cancel_icon_button) // Icon Button
-        val removeIconButton = findViewById<ImageButton>(R.id.remove_icon_button) // Icon Button
+        // Retrieve the buttons
+        val killButton = findViewById<ImageButton>(R.id.killButton)
+        val extraKillButton = findViewById<ImageButton>(R.id.extraKillButton)
 
-        // --- Standard Button Listeners ---
-        snoozeButton.setOnClickListener {
-            handleSnooze()
-        }
+        // Determine a center point for the drag gesture (e.g., near the bottom center)
+        val dm = DisplayMetrics()
+        windowManager.defaultDisplay.getRealMetrics(dm)
+        val screenWidth = dm.widthPixels
+        val screenHeight = dm.heightPixels
+        val centerX = screenWidth / 2f
+        val centerY = screenHeight * 0.8f
 
-        ackButton.setOnClickListener {
-            handleAcknowledge()
-        }
+        // Cancel Alarm: drag clockwise motion threshold detection
+        killButton.setOnTouchListener(object : View.OnTouchListener {
+            var startAngle = 0f
 
-        // --- Custom Drag Listeners ---
-        val dragListener = DragToConfirmListener(this, DRAG_DISTANCE_DP, this)
-        cancelIconButton.setOnTouchListener(dragListener)
-        removeIconButton.setOnTouchListener(dragListener)
+            override fun onTouch(v: View, event: MotionEvent): Boolean {
+                val x = event.rawX
+                val y = event.rawY
+
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startAngle = angleFromCenter(x, y, centerX, centerY)
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val currentAngle = angleFromCenter(x, y, centerX, centerY)
+                        // Calculate clockwise difference
+                        val diff = currentAngle - startAngle
+                        val clockwiseDiff = if (diff < 0) diff + 360 else diff
+
+                        if (clockwiseDiff > 60) { // threshold: 60 degrees, adjust as needed
+                            Toast.makeText(
+                                this@AlarmActivity,
+                                "Cancel Alarm Activated",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            startAngle = currentAngle
+                        }
+                        return true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        // End gesture; optionally animate back if buttons are being moved
+                        return true
+                    }
+                }
+                return false
+            }
+        })
+
+        // Remove Alarm: drag counter-clockwise threshold detection
+        extraKillButton.setOnTouchListener(object : View.OnTouchListener {
+            var startAngle = 0f
+
+            override fun onTouch(v: View, event: MotionEvent): Boolean {
+                val x = event.rawX
+                val y = event.rawY
+
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startAngle = angleFromCenter(x, y, centerX, centerY)
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val currentAngle = angleFromCenter(x, y, centerX, centerY)
+                        val diff = startAngle - currentAngle
+                        val ccwDiff = if (diff < 0) diff + 360 else diff
+
+                        if (ccwDiff > 60) { // threshold: 60 degrees
+                            Toast.makeText(
+                                this@AlarmActivity,
+                                "Remove Alarm Activated",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            startAngle = currentAngle
+                        }
+                        return true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        return true
+                    }
+                }
+                return false
+            }
+        })
     }
 
-    // --- Implement OnConfirmListener methods ---
-
-    override fun onConfirm(view: View) {
-        Log.d(TAG, "Drag confirmed on view: ${view.id}")
-        when (view.id) {
-            R.id.cancel_icon_button -> handleCancelAlarm()
-            R.id.remove_icon_button -> handleRemoveAlarm()
-        }
-    }
-
-    override fun onDragStart(view: View) {
-        Log.d(TAG, "Drag started on view: ${view.id}")
-        // Optional: Add visual feedback like slight scaling or alpha change
-        view.animate().scaleX(1.1f).scaleY(1.1f).alpha(0.8f).setDuration(100).start()
-    }
-
-    override fun onDragEnd(view: View, confirmed: Boolean) {
-        Log.d(TAG, "Drag ended on view: ${view.id}, Confirmed: $confirmed")
-        // Reset any visual feedback applied in onDragStart, even if not confirmed
-        view.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(100).start()
-        // Note: Position reset is handled within DragToConfirmListener itself
-    }
-
-
-    // --- Action Handler Methods ---
-
-    private fun handleSnooze() {
-        Toast.makeText(this, "Snooze pressed (Logic TBD)", Toast.LENGTH_SHORT).show()
-        Log.d(TAG, "Snooze Action Triggered")
-        // TODO: Implement snooze logic (reschedule alarm using AlarmManager)
-        // TODO: Stop sound/vibration here
-        finish() // Close the alarm alert for now
-    }
-
-    private fun handleAcknowledge() {
-        Toast.makeText(this, "Acknowledge pressed (Logic TBD)", Toast.LENGTH_SHORT).show()
-        Log.d(TAG, "Acknowledge Action Triggered")
-        // TODO: Implement acknowledgment logic (cancel any specific pending intents for this instance if needed)
-        // TODO: Stop sound/vibration here
-        finish() // Close the alarm alert
-    }
-
-    private fun handleCancelAlarm() {
-        Toast.makeText(this, "Cancel Alarm confirmed (Logic TBD)", Toast.LENGTH_SHORT).show()
-        Log.d(TAG, "Cancel Alarm Action Triggered")
-        // TODO: Implement cancel logic (stop sound/vibration, cancel pending intents for THIS instance via AlarmManager)
-        // TODO: Stop sound/vibration here
-        finish() // Close the alarm alert
-    }
-
-    private fun handleRemoveAlarm() {
-        Toast.makeText(this, "Remove Alarm confirmed (Initial Action)", Toast.LENGTH_SHORT).show()
-        Log.d(TAG, "Remove Alarm Action Triggered - Performing CANCEL logic for now.")
-        // --- For now, behaves exactly like Cancel ---
-        // TODO: Implement cancel logic (stop sound/vibration, cancel pending intents for THIS instance via AlarmManager)
-        // TODO: Stop sound/vibration here
-
-        // --- TODO: Implement Pending Deletion State ---
-        // Instead of just finishing, trigger the state for the *next* confirmation step.
-        // Examples:
-        // 1. Save alarm ID to SharedPreferences as "pending_delete"
-        // 2. Show a persistent Notification: "Alarm [Name] ready for removal. Tap to confirm."
-        //    - Notification tap could open MainActivity or a confirmation dialog.
-        // 3. Set a flag in a database associated with the alarm.
-        Log.w(TAG, "TODO: Implement state tracking for pending permanent deletion confirmation.")
-
-        finish() // Close the alarm alert
-    }
-
-    // --- TODO: Implement Sound/Vibration Control ---
-    // private fun stopAlarmSoundAndVibration() {
-    //    Log.d(TAG, "Stopping sound and vibration...")
-    //    // Add code here to stop MediaPlayer/Vibrator loops when implemented
-    // }
-
-    // --- Lifecycle methods ---
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d(TAG, "AlarmActivity onDestroy")
-        // Ensure any running sound/vibration is stopped cleanly here too
-        // stopAlarmSoundAndVibration()
+    private fun angleFromCenter(x: Float, y: Float, centerX: Float, centerY: Float): Float {
+        val dx = x - centerX
+        val dy = y - centerY
+        val radians = atan2(dy, dx) // returns angle in radians, between -π and π
+        var degrees = toDegrees(radians) // convert to degrees
+        if (degrees < 0) degrees += 360f // normalize to 0-360 degrees
+        return degrees
     }
 }

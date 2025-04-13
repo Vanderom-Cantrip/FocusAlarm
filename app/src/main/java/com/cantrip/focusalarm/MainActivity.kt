@@ -4,10 +4,11 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.cantrip.focusalarm.AlarmListActivity.AlarmItem
+import com.cantrip.focusalarm.AlarmListActivity.Companion.saveAlarms
 import com.cantrip.focusalarm.databinding.ActivityMainBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.cantrip.focusalarm.AlarmListActivity.Companion.saveAlarms
 
 class MainActivity : AppCompatActivity() {
 
@@ -47,16 +48,16 @@ class MainActivity : AppCompatActivity() {
         val alarmTime = "%02d:%02d".format(hour, minute)
         val label = binding.editTextAlarmName.text.toString().take(20).trim()
 
-        val newAlarm = AlarmListActivity.AlarmItem(time = alarmTime, days = listOf(), enabled = true)
+        val newAlarm = AlarmItem(time = alarmTime, days = listOf(), enabled = true, label = label)
 
         val sharedPrefs = getSharedPreferences("AlarmPrefs", MODE_PRIVATE)
         val json = sharedPrefs.getString("alarms", null)
         val gson = Gson()
-        val type = object : TypeToken<List<AlarmListActivity.AlarmItem>>() {}.type
-        val existingAlarms = if (json != null) gson.fromJson<List<AlarmListActivity.AlarmItem>>(json, type) else emptyList()
+        val type = object : TypeToken<List<AlarmItem>>() {}.type
+        val existingAlarms = if (json != null) gson.fromJson<List<AlarmItem>>(json, type) else emptyList()
         val updatedAlarms = existingAlarms + newAlarm
 
-        AlarmListActivity.saveAlarms(this, alarms)
+        saveAlarms(this, updatedAlarms)
 
         val nameInfo = if (label.isNotEmpty()) "Alarm '$label'" else "Alarm"
         binding.textViewAlarmStatus.text = "$nameInfo set for $alarmTime"

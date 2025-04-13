@@ -22,6 +22,8 @@ class AlarmActivity : AppCompatActivity() {
 
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var alarmRootLayout: ConstraintLayout
+    private lateinit var ackLabel: TextView
+    private lateinit var ackConfirmationText: TextView
     private lateinit var actionButtonsLayout: View
     private lateinit var buttonUndo: Button
     private lateinit var buttonOk: Button
@@ -45,6 +47,8 @@ class AlarmActivity : AppCompatActivity() {
             "Level: $alarmLevel, Name: $alarmName, One-Off: $isOneOff, ID: $alarmId"
 
         alarmRootLayout = findViewById(R.id.alarm_root_layout)
+        ackLabel = findViewById(R.id.ackLabel)
+        ackConfirmationText = findViewById(R.id.ackConfirmationText)
         actionButtonsLayout = findViewById(R.id.actionButtonsLayout)
         buttonUndo = findViewById(R.id.buttonUndo)
         buttonOk = findViewById(R.id.buttonOk)
@@ -54,6 +58,7 @@ class AlarmActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.ackButton).setOnClickListener {
             stopAlarmSounds()
+            ackConfirmationText.visibility = View.VISIBLE
         }
 
         buttonUndo.setOnClickListener { resetToAlarmScreen() }
@@ -88,6 +93,8 @@ class AlarmActivity : AppCompatActivity() {
 
         stopAlarmSounds()
         findViewById<View>(R.id.ackButton).visibility = View.GONE
+        ackLabel.visibility = View.GONE
+        ackConfirmationText.visibility = View.GONE
         killButton.visibility = View.GONE
         extraKillButton.visibility = View.GONE
         findViewById<View>(R.id.killLabel).visibility = View.GONE
@@ -109,6 +116,7 @@ class AlarmActivity : AppCompatActivity() {
         findViewById<View>(R.id.killLabel).visibility = View.VISIBLE
         findViewById<View>(R.id.extraKillLabel).visibility = View.VISIBLE
         actionButtonsLayout.visibility = View.GONE
+        ackConfirmationText.visibility = View.GONE
 
         alarmRootLayout.setBackgroundColor(getColor(android.R.color.holo_orange_light))
 

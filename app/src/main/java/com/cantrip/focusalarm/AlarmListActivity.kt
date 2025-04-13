@@ -1,5 +1,6 @@
 package com.cantrip.focusalarm
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,14 +11,13 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 class AlarmListActivity : AppCompatActivity() {
 
     private lateinit var alarmRecyclerView: RecyclerView
-    private val alarms = listOf(
-        AlarmItem("8:30 AM", listOf("Mon", "Tue", "Wed", "Thu", "Fri"), true),
-        AlarmItem("9:00 AM", listOf("Sun", "Sat"), false)
-    )
+    private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,7 +25,18 @@ class AlarmListActivity : AppCompatActivity() {
 
         alarmRecyclerView = findViewById(R.id.alarmRecyclerView)
         alarmRecyclerView.layoutManager = LinearLayoutManager(this)
-        alarmRecyclerView.adapter = AlarmAdapter(alarms)
+        alarmRecyclerView.adapter = AlarmAdapter(loadAlarms())
+    }
+
+    private fun loadAlarms(): List<AlarmItem> {
+        val sharedPrefs = getSharedPreferences("AlarmPrefs", Context.MODE_PRIVATE)
+        val json = sharedPrefs.getString("alarms", null)
+        return if (json != null) {
+            val type = object : TypeToken<List<AlarmItem>>() {}.type
+            gson.fromJson(json, type)
+        } else {
+            emptyList()
+        }
     }
 
     data class AlarmItem(val time: String, val days: List<String>, var enabled: Boolean)

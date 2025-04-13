@@ -21,6 +21,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-runtime = { group = "androidx.xr.runtime", name = "runtime", version.ref = "runtime" }
+gson = { group = "com.google.code.gson", name = "gson", version = "2.10.1" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

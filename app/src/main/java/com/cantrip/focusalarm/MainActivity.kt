@@ -5,6 +5,9 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.cantrip.focusalarm.databinding.ActivityMainBinding
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.cantrip.focusalarm.AlarmListActivity.Companion.saveAlarms
 
 class MainActivity : AppCompatActivity() {
 
@@ -13,32 +16,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Main alarm control buttons
         binding.buttonSetAlarm.setOnClickListener { setAlarm() }
-
-        // 🚀 Launch alarm list screen
         binding.buttonShowAlarms.setOnClickListener {
-            val intent = Intent(this, AlarmListActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, AlarmListActivity::class.java))
         }
 
-        // Test alarm buttons
         binding.buttonTestAlarm1.setOnClickListener {
-            val intent = Intent(this, AlarmActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, AlarmActivity::class.java))
         }
+
         binding.buttonTestAlarm2.setOnClickListener { playAlarm(R.raw.alarm2, "Test Alarm 2") }
         binding.buttonTestAlarm3.setOnClickListener { playAlarm(R.raw.alarm3, "Test Alarm 3") }
         binding.buttonTestAlarm4.setOnClickListener { playAlarm(R.raw.alarm4, "Test Alarm 4") }
 
-        // Stop button
         binding.buttonStopAlarm.setOnClickListener { stopAlarmSounds() }
 
-        // Repeat toggle visibility
         binding.switchRepeat.setOnCheckedChangeListener { _, isChecked ->
             binding.layoutDays.visibility = if (isChecked) android.view.View.VISIBLE else android.view.View.GONE
         }
@@ -49,21 +44,26 @@ class MainActivity : AppCompatActivity() {
     private fun setAlarm() {
         val hour = binding.timePicker.hour
         val minute = binding.timePicker.minute
-
         val alarmTime = "%02d:%02d".format(hour, minute)
-        val startMinute = (minute - 15 + 60) % 60
-        val startHour = if (minute < 15) (hour - 1 + 24) % 24 else hour
-        val startTime = "%02d:%02d".format(startHour, startMinute)
-
         val label = binding.editTextAlarmName.text.toString().take(20).trim()
 
+        val newAlarm = AlarmListActivity.AlarmItem(time = alarmTime, days = listOf(), enabled = true)
+
+        val sharedPrefs = getSharedPreferences("AlarmPrefs", MODE_PRIVATE)
+        val json = sharedPrefs.getString("alarms", null)
+        val gson = Gson()
+        val type = object : TypeToken<List<AlarmListActivity.AlarmItem>>() {}.type
+        val existingAlarms = if (json != null) gson.fromJson<List<AlarmListActivity.AlarmItem>>(json, type) else emptyList()
+        val updatedAlarms = existingAlarms + newAlarm
+
+        AlarmListActivity.saveAlarms(this, alarms)
+
         val nameInfo = if (label.isNotEmpty()) "Alarm '$label'" else "Alarm"
-        binding.textViewAlarmStatus.text = "$nameInfo set for $alarmTime – Notifications will start from $startTime"
+        binding.textViewAlarmStatus.text = "$nameInfo set for $alarmTime"
     }
 
     private fun playAlarm(resId: Int, label: String) {
         stopAlarmSounds()
-
         binding.textViewAlarmStatus.text = "🔊 Playing $label"
         currentPlayer = MediaPlayer.create(this, resId)
         currentPlayer?.setOnCompletionListener {

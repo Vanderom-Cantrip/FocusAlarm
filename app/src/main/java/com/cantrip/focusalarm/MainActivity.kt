@@ -19,7 +19,12 @@ class MainActivity : AppCompatActivity() {
 
         // Main alarm control buttons
         binding.buttonSetAlarm.setOnClickListener { setAlarm() }
-        binding.buttonCancelAlarm.setOnClickListener { cancelAlarm() }
+
+        // 🚀 Launch alarm list screen
+        binding.buttonShowAlarms.setOnClickListener {
+            val intent = Intent(this, AlarmListActivity::class.java)
+            startActivity(intent)
+        }
 
         // Test alarm buttons
         binding.buttonTestAlarm1.setOnClickListener {
@@ -54,10 +59,6 @@ class MainActivity : AppCompatActivity() {
 
         val nameInfo = if (label.isNotEmpty()) "Alarm '$label'" else "Alarm"
         binding.textViewAlarmStatus.text = "$nameInfo set for $alarmTime – Notifications will start from $startTime"
-    }
-
-    private fun cancelAlarm() {
-        binding.textViewAlarmStatus.text = "Alarm cancelled"
     }
 
     private fun playAlarm(resId: Int, label: String) {

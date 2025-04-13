@@ -42,9 +42,10 @@ class AlarmActivity : AppCompatActivity() {
         val alarmName = intent.getStringExtra(ALARM_NAME_EXTRA) ?: "No Name"
         val isOneOff = intent.getBooleanExtra(IS_ONE_OFF_EXTRA, false)
         val alarmId = intent.getIntExtra(ALARM_ID_EXTRA, 0)
+        val oneOffText = if (isOneOff) "Yes" else "No"
 
         findViewById<TextView>(R.id.alarmInfoTextView).text =
-            getString(R.string.alarm_info_text, alarmLevel, alarmName, isOneOff, alarmId)
+            getString(R.string.alarm_info_text, alarmLevel, alarmName, oneOffText, alarmId)
 
         alarmRootLayout = findViewById(R.id.alarm_root_layout)
         ackConfirmationText = findViewById(R.id.ackConfirmationText)
@@ -81,7 +82,7 @@ class AlarmActivity : AppCompatActivity() {
                 if (mediaPlayer.isPlaying) {
                     mediaPlayer.stop()
                 }
-            } catch (e: IllegalStateException) {
+            } catch (_: IllegalStateException) {
                 // Already stopped
             } finally {
                 mediaPlayer.release()
@@ -168,6 +169,7 @@ class AlarmActivity : AppCompatActivity() {
                 }
                 MotionEvent.ACTION_UP -> {
                     view.animate().translationX(0f).translationY(0f).setDuration(150).start()
+                    view.performClick()
                     true
                 }
                 else -> false

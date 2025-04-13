@@ -22,12 +22,12 @@ class AlarmActivity : AppCompatActivity() {
 
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var alarmRootLayout: ConstraintLayout
-    private lateinit var ackLabel: TextView
     private lateinit var ackConfirmationText: TextView
     private lateinit var actionButtonsLayout: View
     private lateinit var buttonUndo: Button
     private lateinit var buttonOk: Button
     private lateinit var buttonKeepFuture: Button
+    private lateinit var buttonExitFromAck: Button
     private lateinit var killButton: ImageButton
     private lateinit var extraKillButton: ImageButton
     private var isActionPerformed = false
@@ -44,26 +44,28 @@ class AlarmActivity : AppCompatActivity() {
         val alarmId = intent.getIntExtra(ALARM_ID_EXTRA, 0)
 
         findViewById<TextView>(R.id.alarmInfoTextView).text =
-            "Level: $alarmLevel, Name: $alarmName, One-Off: $isOneOff, ID: $alarmId"
+            getString(R.string.alarm_info_text, alarmLevel, alarmName, isOneOff, alarmId)
 
         alarmRootLayout = findViewById(R.id.alarm_root_layout)
-        ackLabel = findViewById(R.id.ackLabel)
         ackConfirmationText = findViewById(R.id.ackConfirmationText)
         actionButtonsLayout = findViewById(R.id.actionButtonsLayout)
         buttonUndo = findViewById(R.id.buttonUndo)
         buttonOk = findViewById(R.id.buttonOk)
         buttonKeepFuture = findViewById(R.id.buttonKeepFuture)
+        buttonExitFromAck = findViewById(R.id.buttonExitFromAck)
         killButton = findViewById(R.id.killButton)
         extraKillButton = findViewById(R.id.extraKillButton)
 
         findViewById<ImageButton>(R.id.ackButton).setOnClickListener {
             stopAlarmSounds()
             ackConfirmationText.visibility = View.VISIBLE
+            buttonExitFromAck.visibility = View.VISIBLE
         }
 
         buttonUndo.setOnClickListener { resetToAlarmScreen() }
-        buttonOk.setOnClickListener { finish() }
-        buttonKeepFuture.setOnClickListener { finish() }
+        buttonOk.setOnClickListener { finishAffinity() }
+        buttonKeepFuture.setOnClickListener { finishAffinity() }
+        buttonExitFromAck.setOnClickListener { finishAffinity() }
 
         killButton.setOnTouchListener(dragTouchListener(killButton, extraKillButton, "cancel"))
         extraKillButton.setOnTouchListener(dragTouchListener(extraKillButton, killButton, "remove"))
@@ -93,8 +95,9 @@ class AlarmActivity : AppCompatActivity() {
 
         stopAlarmSounds()
         findViewById<View>(R.id.ackButton).visibility = View.GONE
-        ackLabel.visibility = View.GONE
+        findViewById<View>(R.id.ackLabel).visibility = View.GONE
         ackConfirmationText.visibility = View.GONE
+        buttonExitFromAck.visibility = View.GONE
         killButton.visibility = View.GONE
         extraKillButton.visibility = View.GONE
         findViewById<View>(R.id.killLabel).visibility = View.GONE
@@ -111,12 +114,14 @@ class AlarmActivity : AppCompatActivity() {
     private fun resetToAlarmScreen() {
         isActionPerformed = false
         findViewById<View>(R.id.ackButton).visibility = View.VISIBLE
+        findViewById<View>(R.id.ackLabel).visibility = View.VISIBLE
+        ackConfirmationText.visibility = View.GONE
+        buttonExitFromAck.visibility = View.GONE
         killButton.visibility = View.VISIBLE
         extraKillButton.visibility = View.VISIBLE
         findViewById<View>(R.id.killLabel).visibility = View.VISIBLE
         findViewById<View>(R.id.extraKillLabel).visibility = View.VISIBLE
         actionButtonsLayout.visibility = View.GONE
-        ackConfirmationText.visibility = View.GONE
 
         alarmRootLayout.setBackgroundColor(getColor(android.R.color.holo_orange_light))
 

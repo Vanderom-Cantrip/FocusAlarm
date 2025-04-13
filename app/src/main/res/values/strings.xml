@@ -6,4 +6,12 @@
     <string name="cancel_alarm">Cancel</string>
     <string name="remove_alarm">Remove</string>
     <string name="alarm_title">Alarm</string>
+    <string name="alarm_info_placeholder">Alarm Information Will Appear Here</string>
+    <string name="ack_confirmation_message">Notifications silenced until next urgency stage. You may still use Cancel or Remove for this alarm.</string>
+    <string name="undo">Undo</string>
+    <string name="ok">OK</string>
+    <string name="keep_future_alarms">Keep Future Alarms</string>
+    <string name="alarm_info_text">Level: %1$d, Name: %2$s, One-Off: %3$s, ID: %4$d</string>
+
+
 </resources>

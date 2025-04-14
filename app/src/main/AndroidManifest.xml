@@ -37,7 +37,6 @@
             android:name=".AlarmReceiver"
             android:exported="false" />
 
-        <!-- Updated Escalation Service with foregroundServiceType -->
         <service
             android:name=".EscalationService"
             android:exported="false"

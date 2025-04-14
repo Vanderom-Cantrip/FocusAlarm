@@ -5,6 +5,8 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
         android:allowBackup="false"
@@ -23,14 +25,23 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".AlarmActivity"
+        <activity
+            android:name=".AlarmActivity"
             android:exported="false" />
 
-        <activity android:name=".AlarmListActivity"
+        <activity
+            android:name=".AlarmListActivity"
             android:exported="false" />
 
-        <receiver android:name=".AlarmReceiver"
+        <receiver
+            android:name=".AlarmReceiver"
             android:exported="false" />
+
+        <!-- Updated Escalation Service with foregroundServiceType -->
+        <service
+            android:name=".EscalationService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
     </application>
 
